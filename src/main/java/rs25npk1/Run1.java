@@ -1,11 +1,5 @@
 package rs25npk1;
 
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import org.apache.commons.vfs2.FileSystemException;
 import org.openimaj.data.dataset.GroupedDataset;
 import org.openimaj.data.dataset.VFSGroupDataset;
@@ -16,6 +10,9 @@ import org.openimaj.image.FImage;
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.processing.resize.ResizeProcessor;
 import org.openimaj.util.array.ArrayUtils;
+
+import java.net.URISyntaxException;
+import java.net.URL;
 
 public class Run1 {
 

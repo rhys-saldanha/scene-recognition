@@ -6,6 +6,7 @@ import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.data.dataset.VFSListDataset;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.FeatureExtractor;
+import org.openimaj.image.DisplayUtilities;
 import org.openimaj.image.FImage;
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.processing.resize.ResizeProcessor;
@@ -20,13 +21,14 @@ public class Run1 {
     private static final int SQUARE_SIZE = 16;
 
     public static void main(String[] args) throws FileSystemException, URISyntaxException {
-        URL testing = ClassLoader.getSystemResource("res/testing.zip");
-        URL training = ClassLoader.getSystemResource("res/training.zip");
+        URL testing = ClassLoader.getSystemResource("testing.zip");
+        URL training = ClassLoader.getSystemResource("training.zip");
 
-        GroupedDataset<String, VFSListDataset<FImage>, FImage> trainingData = new VFSGroupDataset<FImage>(training.toURI().getPath(), ImageUtilities.FIMAGE_READER);
-        VFSListDataset<FImage> testData = new VFSListDataset<FImage>(testing.toURI().getPath(), ImageUtilities.FIMAGE_READER);
+        GroupedDataset<String, VFSListDataset<FImage>, FImage> trainingData = new VFSGroupDataset<>("zip:" + training.toURI().getPath(), ImageUtilities.FIMAGE_READER);
+        VFSListDataset<FImage> testingData = new VFSListDataset<>("zip:" + testing.toURI().getPath(), ImageUtilities.FIMAGE_READER);
 
-
+        DisplayUtilities.display(trainingData.getRandomInstance(), "training data random image");
+        DisplayUtilities.display(testingData.getRandomInstance(), "testing data random image");
     }
 
     static class TinyImageFeatureExtractor implements FeatureExtractor<DoubleFV, FImage> {

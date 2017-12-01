@@ -21,6 +21,7 @@ public class Run1 {
     private static final int SQUARE_SIZE = 16;
 
     public static void main(String[] args) throws FileSystemException, URISyntaxException {
+        //TODO use URLs, fucking Nick
         URL testing = ClassLoader.getSystemResource("testing.zip");
         URL training = ClassLoader.getSystemResource("training.zip");
 

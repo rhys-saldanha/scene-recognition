@@ -6,6 +6,7 @@ import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.data.dataset.VFSListDataset;
 import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.feature.DoubleFV;
+import org.openimaj.feature.DoubleFVComparison;
 import org.openimaj.feature.FeatureExtractor;
 import org.openimaj.image.DisplayUtilities;
 import org.openimaj.image.FImage;
@@ -15,38 +16,35 @@ import org.openimaj.knn.DoubleNearestNeighboursExact;
 import org.openimaj.util.array.ArrayUtils;
 import org.openimaj.util.pair.IntDoublePair;
 
+import java.io.*;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class Run1 {
 
-    private static final int K = 15;
-    private static final int SQUARE_SIZE = 16;
+    private static int K = 15;
+    private static int SQUARE_SIZE = 16;
     private static String[] classes;
     private static DoubleNearestNeighboursExact knn;
     private static FeatureExtractor<DoubleFV, FImage> featureExtractor;
+    private static VFSGroupDataset<FImage> trainingData;
+    private static VFSListDataset<FImage> testingData;
 
     public static void main(String[] args) throws FileSystemException, URISyntaxException {
-        // Get training and testing data
-        GroupedDataset<String, VFSListDataset<FImage>, FImage> trainingData = new VFSGroupDataset<>("zip:http://comp3204.ecs.soton.ac.uk/cw/training.zip", ImageUtilities.FIMAGE_READER);
-        // Remove training folder
-        trainingData.remove("training");
-//        ListDataset<FImage> testingData = new VFSListDataset<>("zip:http://comp3204.ecs.soton.ac.uk/cw/testing.zip", ImageUtilities.FIMAGE_READER);
-
-        GroupedRandomSplitter<String, FImage> splitter = new GroupedRandomSplitter<>(trainingData, 80,0,20);
-
+        initialise_data();
 
         // Instance of our feature extractor
         featureExtractor = new TinyImageFeatureExtractor();
 
         // Array of feature vectors
-        double[][] features = new double[splitter.getTrainingDataset().numInstances()][];
+        double[][] features = new double[trainingData.numInstances()][];
         // Array of classes
-        classes = new String[splitter.getTrainingDataset().numInstances()];
+        classes = new String[trainingData.numInstances()];
 
         AtomicInteger i = new AtomicInteger(0);
-        splitter.getTrainingDataset().forEach((className, imageList) -> {
+        trainingData.forEach((className, imageList) -> {
             imageList.forEach(image -> {
                 features[i.get()] = featureExtractor.extractFeature(image).values;
                 classes[i.getAndIncrement()] = className;
@@ -55,18 +53,59 @@ public class Run1 {
 
         knn = new DoubleNearestNeighboursExact(features);
 
-        AtomicInteger correct = new AtomicInteger();
-        splitter.getTestDataset().forEach((c, v) -> {
-            v.forEach(image ->{
-                String s = classify(image);
-                if (c.equals(s)) {
-                    correct.getAndIncrement();
-                } else {
-                    DisplayUtilities.display(image, s);
-                }
+        try (PrintWriter writer = new PrintWriter("run1.txt", "UTF-8")) {
+            testingData.parallelStream().forEach(image -> {
+                int index = testingData.indexOf(image);
+                String result = String.format("%s %s", testingData.getID(index).split("/")[1], classify(image));
+//                System.out.println(result);
+                writer.println(result);
             });
-        });
-        System.out.println((float) correct.get() / splitter.getTestDataset().numInstances());
+        } catch (FileNotFoundException | UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void initialise_data() {
+        URL training = ClassLoader.getSystemResource("training");
+        URL testing = ClassLoader.getSystemResource("testing");
+
+        String trainingURI = null;
+        if (training == null) {
+            System.out.println("Using training URL");
+            trainingURI = "zip:http://comp3204.ecs.soton.ac.uk/cw/training.zip";
+        } else {
+            try {
+                trainingURI = training.toURI().getPath();
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+        }
+
+        String testingURI = null;
+        if (testing == null) {
+            System.out.println("Using testing URL");
+            testingURI = "zip:http://comp3204.ecs.soton.ac.uk/cw/testing.zip";
+        } else {
+            try {
+                testingURI = testing.toURI().getPath();
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            trainingData = new VFSGroupDataset<FImage>(trainingURI, ImageUtilities.FIMAGE_READER);
+        } catch (FileSystemException e) {
+            e.printStackTrace();
+        }
+        // Remove training folder
+        trainingData.remove("training");
+
+        try {
+            testingData = new VFSListDataset<>(testingURI, ImageUtilities.FIMAGE_READER);
+        } catch (FileSystemException e) {
+            e.printStackTrace();
+        }
     }
 
     private static String classify(FImage randomImage) {

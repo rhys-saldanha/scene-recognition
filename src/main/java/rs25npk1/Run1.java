@@ -45,7 +45,7 @@ public class Run1 {
             // Return vector from 2D array of pixel values
             DoubleFV feature = new DoubleFV(ArrayUtils.reshape(ArrayUtils.convertToDouble(image.pixels)));
             // Zero mean, unit length and return
-            return unitLength(zeroMean(feature));
+            return (zeroMean(feature)).normaliseFV();
         }
 
         private DoubleFV zeroMean(DoubleFV feature) {
@@ -61,19 +61,5 @@ public class Run1 {
             }
             return new DoubleFV(newValues);
         }
-
-        private DoubleFV unitLength(DoubleFV feature) {
-            feature = feature.clone();
-            double sum = 0;
-            for (double d : feature.values) {
-                sum += d;
-            }
-            double[] newValues = new double[feature.values.length];
-            for (int i = 0; i < feature.values.length; i++) {
-                newValues[i] = feature.values[i] / sum;
-            }
-            return new DoubleFV(newValues);
-        }
-
     }
 }

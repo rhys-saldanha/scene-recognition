@@ -21,12 +21,8 @@ public class Run1 {
     private static final int SQUARE_SIZE = 16;
 
     public static void main(String[] args) throws FileSystemException, URISyntaxException {
-        //TODO use URLs, fucking Nick
-        URL testing = ClassLoader.getSystemResource("testing.zip");
-        URL training = ClassLoader.getSystemResource("training.zip");
-
-        GroupedDataset<String, VFSListDataset<FImage>, FImage> trainingData = new VFSGroupDataset<>("zip:" + training.toURI().getPath(), ImageUtilities.FIMAGE_READER);
-        VFSListDataset<FImage> testingData = new VFSListDataset<>("zip:" + testing.toURI().getPath(), ImageUtilities.FIMAGE_READER);
+        GroupedDataset<String, VFSListDataset<FImage>, FImage> trainingData = new VFSGroupDataset<>("zip:http://comp3204.ecs.soton.ac.uk/cw/training.zip", ImageUtilities.FIMAGE_READER);
+        VFSListDataset<FImage> testingData = new VFSListDataset<>("zip:http://comp3204.ecs.soton.ac.uk/cw/testing.zip", ImageUtilities.FIMAGE_READER);
 
         DisplayUtilities.display(trainingData.getRandomInstance(), "training data random image");
         DisplayUtilities.display(testingData.getRandomInstance(), "testing data random image");

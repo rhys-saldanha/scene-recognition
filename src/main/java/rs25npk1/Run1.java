@@ -13,7 +13,6 @@ import org.openimaj.image.processing.resize.ResizeProcessor;
 import org.openimaj.util.array.ArrayUtils;
 
 import java.net.URISyntaxException;
-import java.net.URL;
 
 public class Run1 {
 

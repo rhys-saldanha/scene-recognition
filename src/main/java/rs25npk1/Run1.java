@@ -13,6 +13,10 @@ import org.openimaj.image.processing.resize.ResizeProcessor;
 import org.openimaj.util.array.ArrayUtils;
 
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class Run1 {
 
@@ -20,11 +24,21 @@ public class Run1 {
     private static final int SQUARE_SIZE = 16;
 
     public static void main(String[] args) throws FileSystemException, URISyntaxException {
+        // Get training and testing data
         GroupedDataset<String, VFSListDataset<FImage>, FImage> trainingData = new VFSGroupDataset<>("zip:http://comp3204.ecs.soton.ac.uk/cw/training.zip", ImageUtilities.FIMAGE_READER);
         VFSListDataset<FImage> testingData = new VFSListDataset<>("zip:http://comp3204.ecs.soton.ac.uk/cw/testing.zip", ImageUtilities.FIMAGE_READER);
 
-        DisplayUtilities.display(trainingData.getRandomInstance(), "training data random image");
-        DisplayUtilities.display(testingData.getRandomInstance(), "testing data random image");
+        // Instance of our feature extractor
+        FeatureExtractor<DoubleFV, FImage> featureExtractor = new TinyImageFeatureExtractor();
+        // Map of group to list of feature vectors
+        Map<String, List<DoubleFV>> features = new HashMap<>();
+        // Initialise an empty list for each group
+        trainingData.getGroups().forEach(s -> features.put(s, new ArrayList<>()));
+        // For each image in each group, find the feature vector and
+        //  add to the appropriate list
+        trainingData.forEach((key, value) ->
+                value.forEach(i ->
+                        features.get(key).add(featureExtractor.extractFeature(i))));
     }
 
     static class TinyImageFeatureExtractor implements FeatureExtractor<DoubleFV, FImage> {

@@ -25,7 +25,7 @@ import java.util.stream.IntStream;
 
 public class Run1 {
 
-    private static final boolean URLS = true;
+    private static final boolean URLS = false;
     private static int K = 15;
     private static int SQUARE_SIZE = 16;
     private static String[] classes;

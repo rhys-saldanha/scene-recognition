@@ -1,14 +1,10 @@
 package rs25npk1;
 
 import org.apache.commons.vfs2.FileSystemException;
-import org.openimaj.data.dataset.GroupedDataset;
 import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.data.dataset.VFSListDataset;
-import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.feature.DoubleFV;
-import org.openimaj.feature.DoubleFVComparison;
 import org.openimaj.feature.FeatureExtractor;
-import org.openimaj.image.DisplayUtilities;
 import org.openimaj.image.FImage;
 import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.processing.resize.ResizeProcessor;
@@ -16,14 +12,20 @@ import org.openimaj.knn.DoubleNearestNeighboursExact;
 import org.openimaj.util.array.ArrayUtils;
 import org.openimaj.util.pair.IntDoublePair;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Run1 {
 
+    private static final boolean URLS = true;
     private static int K = 15;
     private static int SQUARE_SIZE = 16;
     private static String[] classes;
@@ -32,7 +34,11 @@ public class Run1 {
     private static VFSGroupDataset<FImage> trainingData;
     private static VFSListDataset<FImage> testingData;
 
-    public static void main(String[] args) throws FileSystemException, URISyntaxException {
+    public static void main(String[] args) {
+        (new Run1()).run();
+    }
+
+    private void run() {
         initialise_data();
 
         // Instance of our feature extractor
@@ -43,6 +49,7 @@ public class Run1 {
         // Array of classes
         classes = new String[trainingData.numInstances()];
 
+        System.out.println("Training");
         AtomicInteger i = new AtomicInteger(0);
         trainingData.forEach((className, imageList) -> {
             imageList.forEach(image -> {
@@ -50,79 +57,66 @@ public class Run1 {
                 classes[i.getAndIncrement()] = className;
             });
         });
+        trainingData = null;
 
         knn = new DoubleNearestNeighboursExact(features);
-
-        try (PrintWriter writer = new PrintWriter("run1.txt", "UTF-8")) {
-            testingData.parallelStream().forEach(image -> {
-                int index = testingData.indexOf(image);
-                String result = String.format("%s %s", testingData.getID(index).split("/")[1], classify(image));
-//                System.out.println(result);
-                writer.println(result);
+        System.out.println("Testing");
+        try (Writer writer = new FileWriter(new File("run1.txt"))) {
+            Map<Integer, String> results = classify(testingData);
+            System.out.println("Classified");
+            IntStream.range(0, testingData.size()).forEach(index -> {
+                try {
+                    writer.write(String.format("%s %s\n", testingData.getID(index).split("/")[1], results.get(index)));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             });
-        } catch (FileNotFoundException | UnsupportedEncodingException e) {
+            /*results.forEach((image, c) -> {
+                try {
+                    writer.write(String.format("%s %s\n", testingData., c));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });*/
+            /*testingData.parallelStream().forEach(image -> {
+                try {
+                    writer.write(String.format("%s %s", testingData.getID(testingData.indexOf(image)).split("/")[1], classify(image)));
+                    writer.newLine();
+                    writer.flush();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });*/
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private static void initialise_data() {
-        URL training = ClassLoader.getSystemResource("training");
-        URL testing = ClassLoader.getSystemResource("testing");
 
-        String trainingURI = null;
-        if (training == null) {
-            System.out.println("Using training URL");
-            trainingURI = "zip:http://comp3204.ecs.soton.ac.uk/cw/training.zip";
-        } else {
-            try {
-                trainingURI = training.toURI().getPath();
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-            }
-        }
+    private Map<Integer, String> classify(List<FImage> list) {
+        int[][] indices = new int[list.size()][K];
+        double[][] distances = new double[list.size()][K];
+        System.out.println("Extracting features");
+        List<double[]> qus = list.parallelStream().map(i -> featureExtractor.extractFeature(i).values).collect(Collectors.toList());
+        System.out.println("Finding KNN");
+        knn.searchKNN(qus, K, indices, distances);
 
-        String testingURI = null;
-        if (testing == null) {
-            System.out.println("Using testing URL");
-            testingURI = "zip:http://comp3204.ecs.soton.ac.uk/cw/testing.zip";
-        } else {
-            try {
-                testingURI = testing.toURI().getPath();
-            } catch (URISyntaxException e) {
-                e.printStackTrace();
-            }
-        }
-
-        try {
-            trainingData = new VFSGroupDataset<FImage>(trainingURI, ImageUtilities.FIMAGE_READER);
-        } catch (FileSystemException e) {
-            e.printStackTrace();
-        }
-        // Remove training folder
-        trainingData.remove("training");
-
-        try {
-            testingData = new VFSListDataset<>(testingURI, ImageUtilities.FIMAGE_READER);
-        } catch (FileSystemException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static String classify(FImage randomImage) {
-        List<IntDoublePair> nn = knn.searchKNN(featureExtractor.extractFeature(randomImage).values, K);
-        Map<String, Integer> results = new HashMap<>();
-
-//        nn.forEach(p -> System.out.println(p.toString()));
-        nn.forEach(p -> {
-            String c = classes[p.getFirst()];
-            int value = results.get(c) == null ? 0 : results.get(c);
-            results.put(c, value + 1);
+        Map<Integer, String> results = new HashMap<>();
+        System.out.println("Finding best class");
+        IntStream.range(0, list.size()).forEach(i -> {
+            Map<String, Integer> r = new HashMap<>();
+            Arrays.stream(indices[i]).forEach(p -> {
+                String c = classes[p];
+                int value = r.get(c) == null ? 0 : r.get(c);
+                r.put(c, value + 1);
+            });
+            results.put(i, Collections.max(r.entrySet(), Map.Entry.comparingByValue()).getKey());
         });
-//        results.forEach((k, v) -> System.out.println(String.format("%s, %s", k, v)));
-        return Collections.max(results.entrySet(), Map.Entry.comparingByValue()).getKey();
+
+        return results;
     }
 
-    static class TinyImageFeatureExtractor implements FeatureExtractor<DoubleFV, FImage> {
+    class TinyImageFeatureExtractor implements FeatureExtractor<DoubleFV, FImage> {
 
         @Override
         public DoubleFV extractFeature(FImage image) {
@@ -165,5 +159,59 @@ public class Run1 {
             }
             return new DoubleFV(newValues);
         }
+    }
+
+    private void initialise_data() {
+        URL training = ClassLoader.getSystemResource("training");
+        URL testing = ClassLoader.getSystemResource("testing");
+
+        String trainingURI = null;
+        if (training == null || URLS) {
+            System.out.println("Using training URL");
+            trainingURI = "zip:http://comp3204.ecs.soton.ac.uk/cw/training.zip";
+        } else {
+            try {
+                trainingURI = training.toURI().getPath();
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+        }
+
+        String testingURI = null;
+        if (testing == null || URLS) {
+            System.out.println("Using testing URL");
+            testingURI = "zip:http://comp3204.ecs.soton.ac.uk/cw/testing.zip";
+        } else {
+            try {
+                testingURI = testing.toURI().getPath();
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+        }
+
+        try {
+            trainingData = new VFSGroupDataset<FImage>(trainingURI, ImageUtilities.FIMAGE_READER);
+        } catch (FileSystemException e) {
+            e.printStackTrace();
+        }
+        // Remove training folder
+        trainingData.remove("training");
+
+        try {
+            testingData = new VFSListDataset<>(testingURI, ImageUtilities.FIMAGE_READER);
+        } catch (FileSystemException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private String classify(FImage randomImage) {
+        List<IntDoublePair> nn = knn.searchKNN(featureExtractor.extractFeature(randomImage).values, K);
+        Map<String, Integer> results = new HashMap<>();
+        nn.forEach(p -> {
+            String c = classes[p.getFirst()];
+            int value = results.get(c) == null ? 0 : results.get(c);
+            results.put(c, value + 1);
+        });
+        return Collections.max(results.entrySet(), Map.Entry.comparingByValue()).getKey();
     }
 }

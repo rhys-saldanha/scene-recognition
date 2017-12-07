@@ -7,3 +7,5 @@ target
 .DS_Store
 Coursework3.iml
 Scene Recognition.iml
+**/resources/testing/*
+**/resources/training/*

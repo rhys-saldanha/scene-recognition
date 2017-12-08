@@ -26,7 +26,7 @@ import java.util.stream.IntStream;
 public class Run1 {
 
     private static final boolean URLS = false;
-    private static int K = 15;
+    private static int K = 5;
     private static int SQUARE_SIZE = 16;
     private static String[] classes;
     private static DoubleNearestNeighboursExact knn;
@@ -71,22 +71,6 @@ public class Run1 {
                     e.printStackTrace();
                 }
             });
-            /*results.forEach((image, c) -> {
-                try {
-                    writer.write(String.format("%s %s\n", testingData., c));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });*/
-            /*testingData.parallelStream().forEach(image -> {
-                try {
-                    writer.write(String.format("%s %s", testingData.getID(testingData.indexOf(image)).split("/")[1], classify(image)));
-                    writer.newLine();
-                    writer.flush();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });*/
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -104,7 +88,7 @@ public class Run1 {
         Map<Integer, String> results = new HashMap<>();
         System.out.println("Finding best class");
         IntStream.range(0, list.size()).forEach(i -> {
-            Map<String, Integer> r = new HashMap<>();
+            Map<String, Integer> r = new LinkedHashMap<>();
             Arrays.stream(indices[i]).forEach(p -> {
                 String c = classes[p];
                 int value = r.get(c) == null ? 0 : r.get(c);

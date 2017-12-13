@@ -53,26 +53,16 @@ public class Run2 extends Main {
 
     @Override
     void run() {
-        System.err.println("Making Local Extractor");
         localExtractor = new LocalPatchesExtractor();
-        System.err.println("Local Extractor Made");
-        
-        System.err.println("Making Assigner");
+
         GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<String, FImage>(trainingData, 15, 0, 0);
         assigner = makeAssigner(random.getTrainingDataset());
-        System.err.println("Assigner Made");
-        
-        System.err.println("Making Feature Extractor");
-        featureExtractor = new PatchFeatureExtractor(assigner);
-        System.err.println("Feature Extractor Made");
 
-        System.err.println("Making Linear Annotator");
+        featureExtractor = new PatchFeatureExtractor(assigner);
+
         ann = new LiblinearAnnotator<FImage, String>(featureExtractor, Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001);
-        System.err.println("Linear Annotator Made");
         
-        System.err.println("Training!");
         ann.train(trainingData);
-        System.err.println("Trained!");
 
         //TESTING WITH SMALL TEST SET
         testingData = (VFSListDataset<FImage>) testingData.subList(0, 100);
@@ -88,7 +78,7 @@ public class Run2 extends Main {
         }
         
         try (Writer writer = new FileWriter(new File("run2.txt"))) {
-            System.out.println("Classified");
+            System.err.println("Classified");
             IntStream.range(0, testingData.size()).forEach(index -> {
                 try {
                     writer.write(String.format("%s %s\n", index, results.get(index)));
@@ -105,16 +95,26 @@ public class Run2 extends Main {
 
     public HardAssigner<double[], double[], IntDoublePair> makeAssigner(GroupedDataset<String, ListDataset<FImage>, FImage> groupedDataset) {
         List<LocalFeature<SpatialLocation, DoubleFV>> patches = new ArrayList<>();
-
+        
         LocalPatchesExtractor extractor = new LocalPatchesExtractor();
         for (FImage i : groupedDataset) {
             patches.addAll(extractor.extractFeature(i));
         }
+
+        List<double[]> keys = new ArrayList<>();
+        for (LocalFeature p : patches) {
+            keys.add(p.getFeatureVector().asDoubleVector());
+        }
         
         // (try ~500 clusters to start)
         DoubleKMeans dkm = DoubleKMeans.createKDTreeEnsemble(500);
-        DoubleCentroidsResult clusters = dkm.cluster(patches.toArray(new double[][]{}));
-
+        
+        System.err.println(".cluster() is what's slow (more mem maybe?)");
+        
+        DoubleCentroidsResult clusters = dkm.cluster(keys.toArray(new double[][]{}));
+        
+        System.err.println(".cluster() done. Ayyyyyy");
+        
         return clusters.defaultHardAssigner();
     }
 

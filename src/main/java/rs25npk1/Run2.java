@@ -20,6 +20,7 @@ public class Run2 extends Main{
 		// TODO Auto-generated method stub
 		
 	}
+	
 	/*
 	 * 
 	 * Step 1 : Create HardAssigner 
@@ -35,7 +36,7 @@ public class Run2 extends Main{
 	public class PatchesExtractor implements LocalFeatureExtractor<LocalFeature<SpatialLocation, DoubleFV>, FImage> {
 
 		@Override
-		public List<? extends LocalFeature<SpatialLocation, DoubleFV>> extractFeature(FImage image) {
+		public List<LocalFeature<SpatialLocation, DoubleFV>> extractFeature(FImage image) {
 		    List<LocalFeature<SpatialLocation, DoubleFV>> allPatches = new ArrayList<>();
 			
 			RectangleSampler patches = new RectangleSampler(image, PATCH_STEP, PATCH_STEP, PATCH_SIZE, PATCH_SIZE);
@@ -58,7 +59,7 @@ public class Run2 extends Main{
 		}
 
 		@Override
-		public Class<? extends LocalFeature<?, ?>> getFeatureClass() {
+		public Class<LocalFeature<SpatialLocation, DoubleFV>> getFeatureClass() {
 			// TODO Auto-generated method stub
 			return null;
 		}

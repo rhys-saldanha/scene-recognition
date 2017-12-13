@@ -105,8 +105,9 @@ public class Run1 extends Main {
             // Resize
             image.processInplace(new ResizeProcessor(SQUARE_SIZE, SQUARE_SIZE));
             // Return vector from 2D array of pixel values
-            DoubleFV feature = new DoubleFV(ArrayUtils.reshape(ArrayUtils.convertToDouble(image.pixels)));
+            DoubleFV feature = new DoubleFV(image.getDoublePixelVector());
             // Zero mean, unit length and return
+            //TODO Use DoubleFV.normaliseFV(2) instead of unitLength
             return unitLength(zeroMean(feature));
         }
 

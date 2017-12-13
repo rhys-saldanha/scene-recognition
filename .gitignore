@@ -6,6 +6,6 @@ target
 .settings
 .DS_Store
 Coursework3.iml
-Scene Recognition.iml
+*.iml
 **/resources/testing/*
 **/resources/training/*

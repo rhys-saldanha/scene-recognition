@@ -34,7 +34,7 @@ public class Run1 extends Main {
         (new Run1()).run();
     }
 
-    private void run() {
+    void run() {
         // Instance of our feature extractor
         featureExtractor = new TinyImageFeatureExtractor();
 

@@ -9,7 +9,7 @@ import org.openimaj.image.ImageUtilities;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-class Main {
+abstract class Main {
     static final boolean URLS = false;
     static VFSGroupDataset<FImage> trainingData;
     static VFSListDataset<FImage> testingData;
@@ -23,7 +23,9 @@ class Main {
         testingData = testing;
     }
 
-    protected void initialise_data() {
+    abstract void run();
+
+    void initialise_data() {
         URL training = ClassLoader.getSystemResource("training");
         URL testing = ClassLoader.getSystemResource("testing");
 

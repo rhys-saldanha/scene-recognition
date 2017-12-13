@@ -1,5 +1,10 @@
 package rs25npk1;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.openimaj.data.dataset.GroupedDataset;
+import org.openimaj.data.dataset.ListDataset;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.local.LocalFeature;
 import org.openimaj.feature.local.LocalFeatureExtractor;
@@ -8,10 +13,11 @@ import org.openimaj.feature.local.SpatialLocation;
 import org.openimaj.image.FImage;
 import org.openimaj.image.pixel.sampling.RectangleSampler;
 import org.openimaj.math.geometry.shape.Rectangle;
+import org.openimaj.ml.clustering.DoubleCentroidsResult;
+import org.openimaj.ml.clustering.assignment.HardAssigner;
+import org.openimaj.ml.clustering.kmeans.DoubleKMeans;
 import org.openimaj.util.array.ArrayUtils;
-
-import java.util.ArrayList;
-import java.util.List;
+import org.openimaj.util.pair.IntDoublePair;
 
 public class Run2 extends Main {
 
@@ -23,7 +29,7 @@ public class Run2 extends Main {
 
     /*
      *
-     * Step 1 : Create HardAssigner
+     * Step 1 : Create HardAssigner  (DING DING DING)
      * Step 2 : Give HardAssigner to extractor to get patches
      * Step 3 : Extractor to LiblinearAnnotator
      * Step 4 : Train + Test
@@ -33,7 +39,22 @@ public class Run2 extends Main {
     private int PATCH_SIZE = 8;
     private int PATCH_STEP = 4;
 
-    public class PatchesExtractor implements LocalFeatureExtractor<LocalFeature<SpatialLocation, DoubleFV>, FImage> {
+    public HardAssigner<double[], double[], IntDoublePair> makeAssigner(GroupedDataset<String, ListDataset<FImage>, FImage> data) {
+        List<LocalFeature<SpatialLocation, DoubleFV>> patches = new ArrayList<>();
+        
+        PatchesExtractor extractor = new PatchesExtractor();
+        for (FImage i : data) {
+            patches.addAll(extractor.extractFeature(i));
+        }
+        
+        DoubleKMeans dkm = DoubleKMeans.createKDTreeEnsemble(300);
+        DoubleCentroidsResult clusters = dkm.cluster(patches.toArray(new double[][]{}));
+        
+        return clusters.defaultHardAssigner();
+    }
+    
+    
+    class PatchesExtractor implements LocalFeatureExtractor<LocalFeature<SpatialLocation, DoubleFV>, FImage> {
 
         @Override
         public List<LocalFeature<SpatialLocation, DoubleFV>> extractFeature(FImage image) {
@@ -46,14 +67,14 @@ public class Run2 extends Main {
 
                 //2D array to 1D array
                 double[] vector = ArrayUtils.reshape(ArrayUtils.convertToDouble(area.pixels));
-                DoubleFV featureV = new DoubleFV(vector);
+                DoubleFV featureVector = new DoubleFV(vector);
                 //Location of rectangle is location of feature
-                SpatialLocation sl = new SpatialLocation(patch.x, patch.y);
+                SpatialLocation location = new SpatialLocation(patch.x, patch.y);
 
                 //Generate as a local feature for compatibility with other modules
-                LocalFeature<SpatialLocation, DoubleFV> lf = new LocalFeatureImpl<SpatialLocation, DoubleFV>(sl, featureV);
+                LocalFeature<SpatialLocation, DoubleFV> localFeature = new LocalFeatureImpl<SpatialLocation, DoubleFV>(location, featureVector);
 
-                allPatches.add(lf);
+                allPatches.add(localFeature);
             }
             return allPatches;
         }
@@ -64,5 +85,4 @@ public class Run2 extends Main {
             return null;
         }
     }
-
 }

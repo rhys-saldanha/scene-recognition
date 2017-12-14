@@ -9,6 +9,7 @@ import java.util.Map.Entry;
 import org.openimaj.data.DataSource;
 import org.openimaj.data.dataset.GroupedDataset;
 import org.openimaj.data.dataset.ListDataset;
+import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.experiment.dataset.sampling.GroupedUniformRandomisedSampler;
 import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.feature.DoubleFV;
@@ -34,91 +35,94 @@ import org.openimaj.util.pair.IntFloatPair;
 
 import de.bwaldvogel.liblinear.SolverType;
 
-public class Run3 extends Main {
-
-    public static void main(String[] args) {
-        (new Run3()).run();
-    }
-
-    void run() {
-
-        // Construct Dense SIFT extractor
+public class Run3 implements OurClassifier {
+    LiblinearAnnotator<FImage, String> ann;
+    
+    public void train(VFSGroupDataset<FImage> trainingData) {
+     // Construct Dense SIFT extractor
         System.err.println("Constructing SIFT extractor...");
         DenseSIFT dsift = new DenseSIFT(5, 7);
         PyramidDenseSIFT<FImage> pdsift = new PyramidDenseSIFT<FImage>(dsift, 6f, 7);        
         System.err.println("SIFT extractor constructed");
 
-        System.err.println("Getting random...");
-        GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<>(trainingData, 80, 0, 20);
-        System.err.println("Randomly split");
-
-        GroupedDataset training = random.getTrainingDataset();
-        GroupedDataset<String, ListDataset<FImage>, FImage> testing = random.getTestDataset();
-
         System.err.println("Training quantiser...");
         HardAssigner<byte[], float[], IntFloatPair> assigner = 
-                trainQuantiser(GroupedUniformRandomisedSampler.sample(training, 30), pdsift);
+                trainQuantiser(GroupedUniformRandomisedSampler.sample(trainingData, 30), pdsift);
         System.err.println("Quantiser trained");
 
         System.err.println("Constructing PHOW extractor...");
         FeatureExtractor<DoubleFV, FImage> extractor = new PHOWExtractor(pdsift, assigner);
         System.err.println("PHOW extractor made");
-//
-//        LiblinearAnnotator<FImage, String> ann = new LiblinearAnnotator<FImage, String>(extractor, Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001);
-//        ann.train(training);
-
+        
         System.err.println("Constructing KernelMap...");
         HomogeneousKernelMap kMap = new HomogeneousKernelMap(KernelType.Chi2, WindowType.Rectangular);
         System.err.println("KernelMap constructed");
+        
         System.err.println("Constructing Feature extractor...");
         FeatureExtractor<DoubleFV, FImage> extractor2 = kMap.createWrappedExtractor(extractor);
         System.err.println("Feature extractor constructed");
 
         System.err.println("Constructing linear annotator...");
-        LiblinearAnnotator<FImage, String> ann = new LiblinearAnnotator<FImage, String>(
+        ann = new LiblinearAnnotator<FImage, String>(
                 extractor2, Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001);
         System.err.println("Linear annotator constructed");
-        System.err.println("Training...");
-        ann.train(training);
-        System.err.println("Trained!");
-
-
-        //        for (int i = 0; i < 20; i++) {
-        //            FImage im = testingData.get(i);
-        //            String fname = testingData.getID(i);
-        //            
-        //            String[] guess = ann.classify(im).getPredictedClasses().toArray(new String[]{});
-        //            String guesses = "";
-        //            for (String s : guess) {
-        //                guesses = guesses + s;
-        //            }
-        //            System.out.println(fname + " " + guesses);
-        //
-        //        }
-
-        Map<Integer, String> results = new HashMap<>();
-
-        System.err.println("Testing...");
-        double correct = 0, total = 0;
-        for (String cls : testing.getGroups()) {
-            //Loop through each face in the testing set
-            for (FImage im : testing.get(cls)) {
-                String[] guess = ann.classify(im).getPredictedClasses().toArray(new String[]{});
-
-                String guesses = "";
-                for (String s : guess) {
-                    guesses = guesses + s;
-                }
-
-                if (guesses.equals(cls)) correct++;
-                results.put((int) total, guesses);
-
-                total++;
-            }
-        }
-        System.err.println("Done!");
-        System.out.println("Accuracy: " + correct/total + "%");
     }
+
+    public String classify(FImage f) {
+        String[] guess = ann.classify(f).getPredictedClasses().toArray(new String[]{});
+
+        String guesses = "";
+        for (String s : guess) {
+            guesses = guesses + s;
+        }
+        
+        return guesses;
+    }
+
+//    void run() {
+//
+//        
+//        System.err.println("Training...");
+//        ann.train(training);
+//        System.err.println("Trained!");
+//
+//
+//        //        for (int i = 0; i < 20; i++) {
+//        //            FImage im = testingData.get(i);
+//        //            String fname = testingData.getID(i);
+//        //            
+//        //            String[] guess = ann.classify(im).getPredictedClasses().toArray(new String[]{});
+//        //            String guesses = "";
+//        //            for (String s : guess) {
+//        //                guesses = guesses + s;
+//        //            }
+//        //            System.out.println(fname + " " + guesses);
+//        //
+//        //        }
+//
+//        Map<Integer, String> results = new HashMap<>();
+//
+//        System.err.println("Testing...");
+//        double correct = 0, total = 0;
+//        for (String cls : testing.getGroups()) {
+//            //Loop through each face in the testing set
+//            for (FImage im : testing.get(cls)) {
+//                String[] guess = ann.classify(im).getPredictedClasses().toArray(new String[]{});
+//
+//                String guesses = "";
+//                for (String s : guess) {
+//                    guesses = guesses + s;
+//                }
+//
+//                if (guesses.equals(cls)) correct++;
+//                results.put((int) total, guesses);
+//
+//                total++;
+//            }
+//        }
+//        System.err.println("Done!");
+//        System.out.println("Accuracy: " + correct/total + "%");
+//    }
 
     static HardAssigner<byte[], float[], IntFloatPair> trainQuantiser(
             GroupedDataset<String, ListDataset<FImage>, FImage> sample, PyramidDenseSIFT<FImage> pdsift)

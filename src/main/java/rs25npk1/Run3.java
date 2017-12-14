@@ -1,17 +1,13 @@
 package rs25npk1;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 
 import org.openimaj.data.DataSource;
 import org.openimaj.data.dataset.GroupedDataset;
 import org.openimaj.data.dataset.ListDataset;
-import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.experiment.dataset.sampling.GroupedUniformRandomisedSampler;
-import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.FeatureExtractor;
 import org.openimaj.feature.SparseIntFV;
@@ -35,29 +31,29 @@ import org.openimaj.util.pair.IntFloatPair;
 
 import de.bwaldvogel.liblinear.SolverType;
 
-public class Run3 implements OurClassifier {
+public class Run3 implements Classifier {
     LiblinearAnnotator<FImage, String> ann;
-    
-    public void train(VFSGroupDataset<FImage> trainingData) {
-     // Construct Dense SIFT extractor
+
+    public void train(GroupedDataset<String, ListDataset<FImage>, FImage> trainingData) {
+        // Construct Dense SIFT extractor
         System.err.println("Constructing SIFT extractor...");
         DenseSIFT dsift = new DenseSIFT(5, 7);
-        PyramidDenseSIFT<FImage> pdsift = new PyramidDenseSIFT<FImage>(dsift, 6f, 7);        
+        PyramidDenseSIFT<FImage> pdsift = new PyramidDenseSIFT<FImage>(dsift, 6f, 7);
         System.err.println("SIFT extractor constructed");
 
         System.err.println("Training quantiser...");
-        HardAssigner<byte[], float[], IntFloatPair> assigner = 
+        HardAssigner<byte[], float[], IntFloatPair> assigner =
                 trainQuantiser(GroupedUniformRandomisedSampler.sample(trainingData, 30), pdsift);
         System.err.println("Quantiser trained");
 
         System.err.println("Constructing PHOW extractor...");
         FeatureExtractor<DoubleFV, FImage> extractor = new PHOWExtractor(pdsift, assigner);
         System.err.println("PHOW extractor made");
-        
+
         System.err.println("Constructing KernelMap...");
         HomogeneousKernelMap kMap = new HomogeneousKernelMap(KernelType.Chi2, WindowType.Rectangular);
         System.err.println("KernelMap constructed");
-        
+
         System.err.println("Constructing Feature extractor...");
         FeatureExtractor<DoubleFV, FImage> extractor2 = kMap.createWrappedExtractor(extractor);
         System.err.println("Feature extractor constructed");
@@ -75,7 +71,7 @@ public class Run3 implements OurClassifier {
         for (String s : guess) {
             guesses = guesses + s;
         }
-        
+
         return guesses;
     }
 
@@ -125,17 +121,14 @@ public class Run3 implements OurClassifier {
 //    }
 
     static HardAssigner<byte[], float[], IntFloatPair> trainQuantiser(
-            GroupedDataset<String, ListDataset<FImage>, FImage> sample, PyramidDenseSIFT<FImage> pdsift)
-    {
+            GroupedDataset<String, ListDataset<FImage>, FImage> sample, PyramidDenseSIFT<FImage> pdsift) {
         System.err.println("\tMaking list...");
         List<LocalFeatureList<ByteDSIFTKeypoint>> allkeys = new ArrayList<LocalFeatureList<ByteDSIFTKeypoint>>();
         System.err.println("\tList made");
 
         System.err.println("\tAdding features to list...");
-        for (Entry<String, ListDataset<FImage>> entry : sample.entrySet()) 
-        {
-            for(FImage image : entry.getValue()) 
-            {
+        for (Entry<String, ListDataset<FImage>> entry : sample.entrySet()) {
+            for (FImage image : entry.getValue()) {
                 pdsift.analyseImage(image.normalise());
                 allkeys.add(pdsift.getByteKeypoints(0.005f));
             }
@@ -163,8 +156,7 @@ public class Run3 implements OurClassifier {
         PyramidDenseSIFT<FImage> pdsift;
         HardAssigner<byte[], float[], IntFloatPair> assigner;
 
-        public PHOWExtractor(PyramidDenseSIFT<FImage> pdsift, HardAssigner<byte[], float[], IntFloatPair> assigner)
-        {
+        public PHOWExtractor(PyramidDenseSIFT<FImage> pdsift, HardAssigner<byte[], float[], IntFloatPair> assigner) {
             this.pdsift = pdsift;
             this.assigner = assigner;
         }

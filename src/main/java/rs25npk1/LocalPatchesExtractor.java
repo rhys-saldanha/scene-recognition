@@ -5,6 +5,8 @@ import org.openimaj.feature.local.LocalFeature;
 import org.openimaj.feature.local.LocalFeatureExtractor;
 import org.openimaj.feature.local.LocalFeatureImpl;
 import org.openimaj.feature.local.SpatialLocation;
+import org.openimaj.feature.local.list.LocalFeatureList;
+import org.openimaj.feature.local.list.MemoryLocalFeatureList;
 import org.openimaj.image.FImage;
 import org.openimaj.image.pixel.sampling.RectangleSampler;
 import org.openimaj.math.geometry.shape.Rectangle;
@@ -35,15 +37,15 @@ class LocalPatchesExtractor implements LocalFeatureExtractor<LocalFeature<Spatia
      * @return list of extracted local features
      */
     @Override
-    public List<LocalFeature<SpatialLocation, DoubleFV>> extractFeature(FImage image) {
-        List<LocalFeature<SpatialLocation, DoubleFV>> allPatches = new ArrayList<>();
+    public LocalFeatureList<LocalFeature<SpatialLocation, DoubleFV>> extractFeature(FImage image) {
+        LocalFeatureList<LocalFeature<SpatialLocation, DoubleFV>> allPatches = new MemoryLocalFeatureList<>();
 
         // Use OpenImaj RectangleSampler to generate patches
         // Cannot use subImageIterator as we need patch locations
         for (Rectangle patch : new RectangleSampler(image, STEP, STEP, PATCH_SIZE, PATCH_SIZE)) {
             // Feature vector is defined as the values of the patch pixels
             // Patches are constant size therefore feature vectors have constant dimensionality
-            DoubleFV featureVector = zeroMean(new DoubleFV(image.extractROI(patch).getDoublePixelVector())).normaliseFV();
+            DoubleFV featureVector = zeroMean(new DoubleFV(image.extractROI(patch).getDoublePixelVector()));
             // Location of feature is the location of the patch
             SpatialLocation location = new SpatialLocation(patch.x, patch.y);
             LocalFeature<SpatialLocation, DoubleFV> localFeature = new LocalFeatureImpl<>(location, featureVector);
@@ -52,7 +54,10 @@ class LocalPatchesExtractor implements LocalFeatureExtractor<LocalFeature<Spatia
         }
 
         Collections.shuffle(allPatches);
-        return allPatches.subList(0, 10);
+        if (allPatches.size() > 200) {
+            allPatches = allPatches.subList(0, 200);
+        }
+        return allPatches;
     }
 
     private DoubleFV zeroMean(DoubleFV feature) {

@@ -1,6 +1,7 @@
 package rs25npk1;
 
-import org.openimaj.data.dataset.VFSGroupDataset;
+import org.openimaj.data.dataset.GroupedDataset;
+import org.openimaj.data.dataset.ListDataset;
 import org.openimaj.data.dataset.VFSListDataset;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.FeatureExtractor;
@@ -16,7 +17,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class KNN implements OurClassifier {
+public class KNN implements Classifier {
     private int K, SQUARE_SIZE;
     private String[] classes;
     private DoubleNearestNeighboursExact knn;
@@ -32,7 +33,7 @@ public class KNN implements OurClassifier {
     }
 
     @Override
-    public void train(VFSGroupDataset<FImage> trainingData) {
+    public void train(GroupedDataset<String, ListDataset<FImage>, FImage> trainingData) {
         // Instance of our feature extractor
         featureExtractor = new TinyImageFeatureExtractor(SQUARE_SIZE);
 
@@ -55,6 +56,7 @@ public class KNN implements OurClassifier {
 
     @Override
     public String classify(FImage f) {
+        //TODO make this less awkward
         ArrayList<FImage> r = new ArrayList<>();
         r.add(f);
         return classify(r).get(0);

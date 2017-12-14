@@ -36,7 +36,7 @@ public class Run1 extends Main {
 
     void run() {
         // Instance of our feature extractor
-        featureExtractor = new TinyImageFeatureExtractor();
+        featureExtractor = new TinyImageFeatureExtractor(SQUARE_SIZE);
 
         // Array of feature vectors
         double[][] features = new double[trainingData.numInstances()][];
@@ -95,6 +95,11 @@ public class Run1 extends Main {
     }
 
     class TinyImageFeatureExtractor implements FeatureExtractor<DoubleFV, FImage> {
+        private int SQUARE_SIZE;
+
+        TinyImageFeatureExtractor(int square_size) {
+            this.SQUARE_SIZE = square_size;
+        }
 
         @Override
         public DoubleFV extractFeature(FImage image) {

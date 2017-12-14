@@ -1,36 +1,17 @@
 package rs25npk1;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collector;
-import java.util.stream.Collectors;
-
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane.SystemMenuBar;
-
-import org.openimaj.data.DataSource;
+import de.bwaldvogel.liblinear.SolverType;
 import org.openimaj.data.dataset.GroupedDataset;
 import org.openimaj.data.dataset.ListDataset;
-import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.FeatureExtractor;
-import org.openimaj.feature.SparseIntFV;
 import org.openimaj.feature.local.LocalFeature;
 import org.openimaj.feature.local.LocalFeatureExtractor;
 import org.openimaj.feature.local.LocalFeatureImpl;
 import org.openimaj.feature.local.SpatialLocation;
-import org.openimaj.feature.local.data.LocalFeatureListDataSource;
 import org.openimaj.image.FImage;
-import org.openimaj.image.feature.dense.gradient.dsift.ByteDSIFTKeypoint;
 import org.openimaj.image.feature.local.aggregate.BagOfVisualWords;
-import org.openimaj.image.feature.local.aggregate.BlockSpatialAggregator;
 import org.openimaj.image.pixel.sampling.RectangleSampler;
 import org.openimaj.math.geometry.shape.Rectangle;
 import org.openimaj.ml.annotation.linear.LiblinearAnnotator;
@@ -40,7 +21,11 @@ import org.openimaj.ml.clustering.assignment.HardAssigner;
 import org.openimaj.ml.clustering.kmeans.DoubleKMeans;
 import org.openimaj.util.pair.IntDoublePair;
 
-import de.bwaldvogel.liblinear.SolverType;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.*;
 
 
 public class Run2 extends Main {
@@ -57,7 +42,7 @@ public class Run2 extends Main {
     void run() {
         localExtractor = new LocalPatchesExtractor(8, 4);
 
-        GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<String, FImage>(trainingData, 80, 0, 20);
+        GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<>(trainingData, 80, 0, 20);
 
         assigner = makeAssigner(random.getTrainingDataset());
 
@@ -83,7 +68,7 @@ public class Run2 extends Main {
         double correct = 0, total = 0;
         for (String cls : testing.getGroups()) {
             //Loop through each face in the testing set
-            for (FImage im : testing.get(cls)) { 
+            for (FImage im : testing.get(cls)) {
                 String[] guess = ann.classify(im).getPredictedClasses().toArray(new String[]{});
 
                 String guesses = "";
@@ -97,8 +82,8 @@ public class Run2 extends Main {
                 total++;
             }
         }
-        
-        System.out.println("Correct: " + correct + " | Total: " + total + " | Accuracy: " + (correct/total)*100);
+
+        System.out.println("Correct: " + correct + " | Total: " + total + " | Accuracy: " + (correct / total) * 100);
 
         //        for (int i = 0; i < testing.size(); i++) {
         //            FImage image = testing.get(i);
@@ -177,7 +162,7 @@ public class Run2 extends Main {
             for (Rectangle patch : new RectangleSampler(image, STEP, STEP, PATCH_SIZE, PATCH_SIZE)) {
                 // Feature vector is defined as the values of the patch pixels
                 // Patches are constant size therefore feature vectors have constant dimensionality
-                DoubleFV featureVector = zeroMean(new DoubleFV(image.extractROI(patch).getDoublePixelVector())).normaliseFV(2);
+                DoubleFV featureVector = zeroMean(new DoubleFV(image.extractROI(patch).getDoublePixelVector())).normaliseFV();
                 // Location of feature is the location of the patch
                 SpatialLocation location = new SpatialLocation(patch.x, patch.y);
                 LocalFeature<SpatialLocation, DoubleFV> localFeature = new LocalFeatureImpl<>(location, featureVector);

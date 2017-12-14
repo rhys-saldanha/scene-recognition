@@ -1,9 +1,23 @@
 package rs25npk1;
 
-import de.bwaldvogel.liblinear.SolverType;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane.SystemMenuBar;
+
+import org.openimaj.data.DataSource;
 import org.openimaj.data.dataset.GroupedDataset;
 import org.openimaj.data.dataset.ListDataset;
-import org.openimaj.data.dataset.VFSListDataset;
+import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.FeatureExtractor;
@@ -12,7 +26,9 @@ import org.openimaj.feature.local.LocalFeature;
 import org.openimaj.feature.local.LocalFeatureExtractor;
 import org.openimaj.feature.local.LocalFeatureImpl;
 import org.openimaj.feature.local.SpatialLocation;
+import org.openimaj.feature.local.data.LocalFeatureListDataSource;
 import org.openimaj.image.FImage;
+import org.openimaj.image.feature.dense.gradient.dsift.ByteDSIFTKeypoint;
 import org.openimaj.image.feature.local.aggregate.BagOfVisualWords;
 import org.openimaj.image.feature.local.aggregate.BlockSpatialAggregator;
 import org.openimaj.image.pixel.sampling.RectangleSampler;
@@ -24,15 +40,7 @@ import org.openimaj.ml.clustering.assignment.HardAssigner;
 import org.openimaj.ml.clustering.kmeans.DoubleKMeans;
 import org.openimaj.util.pair.IntDoublePair;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.IntStream;
+import de.bwaldvogel.liblinear.SolverType;
 
 
 public class Run2 extends Main {
@@ -47,37 +55,70 @@ public class Run2 extends Main {
 
     @Override
     void run() {
-        GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<String, FImage>(trainingData, 15, 0, 0);
+        localExtractor = new LocalPatchesExtractor(8, 4);
+
+        GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<String, FImage>(trainingData, 80, 0, 20);
+
         assigner = makeAssigner(random.getTrainingDataset());
 
         featureExtractor = new PatchFeatureExtractor(assigner);
 
         ann = new LiblinearAnnotator<FImage, String>(featureExtractor, Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001);
 
-        ann.train(trainingData);
+        System.err.println("TRAINING");
+        ann.train(random.getTrainingDataset());//.getTrainingDataset());
 
         //TESTING WITH SMALL TEST SET
-        testingData = (VFSListDataset<FImage>) testingData.subList(0, 100);
+        GroupedDataset<String, ListDataset<FImage>, FImage> testing = random.getTestDataset();
 
         System.err.println("Testing");
-        Map<String, String> results = new HashMap<>();
-        for (int i = 0; i < testingData.size(); i++) {
-            FImage image = testingData.get(i);
-            String name = testingData.getID(i);
-            String guess = ann.classify(image).toString();
+        Map<Integer, String> results = new HashMap<>();
+        //        for (int i = 0; i < testingData.size(); i++) {
+        //            FImage image = testingData.get(i);
+        //            String name = testingData.getID(i);
 
-            results.put(name, guess);
+        System.err.println("Classifying images");
+
+        System.out.println(testing.size());
+        double correct = 0, total = 0;
+        for (String cls : testing.getGroups()) {
+            //Loop through each face in the testing set
+            for (FImage im : testing.get(cls)) { 
+                String[] guess = ann.classify(im).getPredictedClasses().toArray(new String[]{});
+
+                String guesses = "";
+                for (String s : guess) {
+                    guesses = guesses + s;
+                }
+
+                if (guesses.equals(cls)) correct++;
+                results.put((int) total, guesses);
+
+                total++;
+            }
         }
+        
+        System.out.println("Correct: " + correct + " | Total: " + total + " | Accuracy: " + (correct/total)*100);
 
+        //        for (int i = 0; i < testing.size(); i++) {
+        //            FImage image = testing.get(i);
+        //            String[] guess = ann.classify(image).getPredictedClasses().toArray(new String[]{});
+        //            
+        //            String guesses = "";
+        //            for (String s : guess) {
+        //                guesses = guesses + s;
+        //            }
+        //            
+        //            results.put(i, guesses);
+        //        }
+
+        System.err.println("Writing");
         try (Writer writer = new FileWriter(new File("run2.txt"))) {
             System.err.println("Classified");
-            IntStream.range(0, testingData.size()).forEach(index -> {
-                try {
-                    writer.write(String.format("%s %s\n", index, results.get(index)));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
+            for (Map.Entry<Integer, String> entry : results.entrySet()) {
+                writer.write(String.format("%s %s\n", entry.getKey(), results.get(entry.getKey())));
+
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -101,11 +142,7 @@ public class Run2 extends Main {
         // (try ~500 clusters to start)
         DoubleKMeans dkm = DoubleKMeans.createKDTreeEnsemble(500);
 
-        System.err.println(".cluster() is what's slow (more mem maybe?)");
-
         DoubleCentroidsResult clusters = dkm.cluster(keys.toArray(new double[][]{}));
-
-        System.err.println(".cluster() done. Ayyyyyy");
 
         return clusters.defaultHardAssigner();
     }
@@ -147,7 +184,9 @@ public class Run2 extends Main {
 
                 allPatches.add(localFeature);
             }
-            return allPatches;
+
+            Collections.shuffle(allPatches);
+            return allPatches.subList(0, 10);
         }
 
         @Override
@@ -169,9 +208,11 @@ public class Run2 extends Main {
         public DoubleFV extractFeature(FImage image) {
             BagOfVisualWords<double[]> bag = new BagOfVisualWords<double[]>(assigner);
 
-            BlockSpatialAggregator<double[], SparseIntFV> spatial = new BlockSpatialAggregator<double[], SparseIntFV>(bag, 2, 2);
+            //            BlockSpatialAggregator<double[], SparseIntFV> spatial = new BlockSpatialAggregator<double[], SparseIntFV>(bag, 2, 2);
+            //
+            //            return spatial.aggregate(localExtractor.extractFeature(image), image.getBounds()).asDoubleFV();
 
-            return spatial.aggregate(localExtractor.extractFeature(image), image.getBounds()).normaliseFV();
+            return bag.aggregate(localExtractor.extractFeature(image)).asDoubleFV().normaliseFV();
         }
 
     }

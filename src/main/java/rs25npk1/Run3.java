@@ -140,7 +140,7 @@ public class Run3 implements Classifier {
             allkeys = allkeys.subList(0, 10000);
 
         System.err.println("\tCreate KDTreeEnsemble...");
-        ByteKMeans km = ByteKMeans.createKDTreeEnsemble(300);
+        ByteKMeans km = ByteKMeans.createKDTreeEnsemble(500);
         System.err.println("\tCreated");
         System.err.println("\tConstructing datasource...");
         DataSource<byte[]> datasource = new LocalFeatureListDataSource<ByteDSIFTKeypoint, byte[]>(allkeys);

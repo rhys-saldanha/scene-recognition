@@ -23,11 +23,8 @@ class PatchFeatureExtractor implements FeatureExtractor<DoubleFV, FImage> {
     @Override
     public DoubleFV extractFeature(FImage image) {
         BagOfVisualWords<double[]> bag = new BagOfVisualWords<double[]>(assigner);
-
-        //            BlockSpatialAggregator<double[], SparseIntFV> spatial = new BlockSpatialAggregator<double[], SparseIntFV>(bag, 2, 2);
-        //
-        //            return spatial.aggregate(localExtractor.extractFeature(image), image.getBounds()).asDoubleFV();
-
+//        BlockSpatialAggregator<double[], SparseIntFV> spatial = new BlockSpatialAggregator<double[], SparseIntFV>(bag, 2, 2);
+//        return spatial.aggregate(localExtractor.extractFeature(image), image.getBounds()).asDoubleFV();
         return bag.aggregate(localExtractor.extractFeature(image)).asDoubleFV();
     }
 

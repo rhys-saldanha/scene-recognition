@@ -1,18 +1,8 @@
 package rs25npk1;
 
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.io.Writer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.IntStream;
-
+import de.bwaldvogel.liblinear.SolverType;
 import org.openimaj.data.dataset.GroupedDataset;
 import org.openimaj.data.dataset.ListDataset;
-import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.data.dataset.VFSListDataset;
 import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.feature.DoubleFV;
@@ -32,10 +22,17 @@ import org.openimaj.ml.annotation.linear.LiblinearAnnotator.Mode;
 import org.openimaj.ml.clustering.DoubleCentroidsResult;
 import org.openimaj.ml.clustering.assignment.HardAssigner;
 import org.openimaj.ml.clustering.kmeans.DoubleKMeans;
-import org.openimaj.util.array.ArrayUtils;
 import org.openimaj.util.pair.IntDoublePair;
 
-import de.bwaldvogel.liblinear.SolverType;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.IntStream;
 
 
 public class Run2 extends Main {
@@ -44,17 +41,12 @@ public class Run2 extends Main {
     FeatureExtractor<DoubleFV, FImage> featureExtractor;
     LiblinearAnnotator<FImage, String> ann;
 
-    private int PATCH_SIZE = 8;
-    private int PATCH_STEP = 4;
-
     public static void main(String[] args) {
         (new Run2()).run();
     }
 
     @Override
     void run() {
-        localExtractor = new LocalPatchesExtractor();
-
         GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<String, FImage>(trainingData, 15, 0, 0);
         assigner = makeAssigner(random.getTrainingDataset());
 

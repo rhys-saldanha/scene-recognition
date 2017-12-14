@@ -28,19 +28,25 @@ import java.io.Writer;
 import java.util.*;
 
 
-public class Run2 extends Main {
+public class LIN extends OurClassifier {
     LocalFeatureExtractor<LocalFeature<SpatialLocation, DoubleFV>, FImage> localExtractor;
     HardAssigner<double[], double[], IntDoublePair> assigner;
     FeatureExtractor<DoubleFV, FImage> featureExtractor;
     LiblinearAnnotator<FImage, String> ann;
+    int patch_size, step_size;
 
     public static void main(String[] args) {
-        (new Run2()).run();
+        (new LIN(8, 4)).run();
+    }
+
+    LIN(int patch_size, int step_size) {
+        this.patch_size = patch_size;
+        this.step_size = step_size;
     }
 
     @Override
     void run() {
-        localExtractor = new LocalPatchesExtractor(8, 4);
+        localExtractor = new LocalPatchesExtractor(this.patch_size, this.step_size);
 
         GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<>(trainingData, 80, 0, 20);
 
@@ -71,31 +77,20 @@ public class Run2 extends Main {
             for (FImage im : testing.get(cls)) {
                 String[] guess = ann.classify(im).getPredictedClasses().toArray(new String[]{});
 
-                String guesses = "";
+                StringBuilder guesses = new StringBuilder();
                 for (String s : guess) {
-                    guesses = guesses + s;
+                    guesses.append(s);
+                    guesses.append(" ");
                 }
 
-                if (guesses.equals(cls)) correct++;
-                results.put((int) total, guesses);
+                if (guesses.toString().equals(cls)) correct++;
+                results.put((int) total, guesses.toString());
 
                 total++;
             }
         }
 
         System.out.println("Correct: " + correct + " | Total: " + total + " | Accuracy: " + (correct / total) * 100);
-
-        //        for (int i = 0; i < testing.size(); i++) {
-        //            FImage image = testing.get(i);
-        //            String[] guess = ann.classify(image).getPredictedClasses().toArray(new String[]{});
-        //            
-        //            String guesses = "";
-        //            for (String s : guess) {
-        //                guesses = guesses + s;
-        //            }
-        //            
-        //            results.put(i, guesses);
-        //        }
 
         System.err.println("Writing");
         try (Writer writer = new FileWriter(new File("run2.txt"))) {

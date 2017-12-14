@@ -1,37 +1,34 @@
 package rs25npk1;
 
-import org.apache.commons.vfs2.FileSystemException;
 import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.data.dataset.VFSListDataset;
+import org.openimaj.experiment.evaluation.classification.BasicClassificationResult;
+import org.openimaj.experiment.evaluation.classification.ClassificationResult;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.FeatureExtractor;
 import org.openimaj.image.FImage;
-import org.openimaj.image.ImageUtilities;
 import org.openimaj.image.processing.resize.ResizeProcessor;
 import org.openimaj.knn.DoubleNearestNeighboursExact;
-import org.openimaj.util.array.ArrayUtils;
 import org.openimaj.util.pair.IntDoublePair;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.Writer;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-public class Run1 extends Main {
+public class KNN extends OurClassifier {
     private static int K = 5;
     private static int SQUARE_SIZE = 16;
     private static String[] classes;
     private static DoubleNearestNeighboursExact knn;
     private static FeatureExtractor<DoubleFV, FImage> featureExtractor;
 
-    public static void main(String[] args) {
-        (new Run1()).run();
+    KNN(VFSGroupDataset<FImage> training, VFSListDataset<FImage> testing) {
+        super(training, testing);
     }
 
     void run() {
@@ -70,7 +67,6 @@ public class Run1 extends Main {
         }
     }
 
-    //TODO Implement @link org.openimaj.experiment.evaluation.classification.Classifier
     private Map<Integer, String> classify(List<FImage> list) {
         int[][] indices = new int[list.size()][K];
         double[][] distances = new double[list.size()][K];
@@ -92,6 +88,11 @@ public class Run1 extends Main {
         });
 
         return results;
+    }
+
+    @Override
+    public ClassificationResult<String> classify(FImage object) {
+        return new BasicClassificationResult<String>(2.0);
     }
 
     class TinyImageFeatureExtractor implements FeatureExtractor<DoubleFV, FImage> {
@@ -143,16 +144,5 @@ public class Run1 extends Main {
             }
             return new DoubleFV(newValues);
         }
-    }
-
-    private String classify(FImage randomImage) {
-        List<IntDoublePair> nn = knn.searchKNN(featureExtractor.extractFeature(randomImage).values, K);
-        Map<String, Integer> results = new HashMap<>();
-        nn.forEach(p -> {
-            String c = classes[p.getFirst()];
-            int value = results.get(c) == null ? 0 : results.get(c);
-            results.put(c, value + 1);
-        });
-        return Collections.max(results.entrySet(), Map.Entry.comparingByValue()).getKey();
     }
 }

@@ -96,7 +96,7 @@ public class Run2 extends Main {
     public HardAssigner<double[], double[], IntDoublePair> makeAssigner(GroupedDataset<String, ListDataset<FImage>, FImage> groupedDataset) {
         List<LocalFeature<SpatialLocation, DoubleFV>> patches = new ArrayList<>();
 
-        LocalPatchesExtractor extractor = new LocalPatchesExtractor();
+        LocalPatchesExtractor extractor = new LocalPatchesExtractor(8, 4);
         for (FImage i : groupedDataset) {
             patches.addAll(extractor.extractFeature(i));
         }

@@ -43,28 +43,44 @@ public class Run3 extends Main {
     void run() {
 
         // Construct Dense SIFT extractor
+        System.err.println("Constructing SIFT extractor...");
         DenseSIFT dsift = new DenseSIFT(5, 7);
         PyramidDenseSIFT<FImage> pdsift = new PyramidDenseSIFT<FImage>(dsift, 6f, 7);        
+        System.err.println("SIFT extractor constructed");
 
+        System.err.println("Getting random...");
         GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<>(trainingData, 80, 0, 20);
+        System.err.println("Randomly split");
 
         GroupedDataset training = random.getTrainingDataset();
         GroupedDataset<String, ListDataset<FImage>, FImage> testing = random.getTestDataset();
 
+        System.err.println("Training quantiser...");
         HardAssigner<byte[], float[], IntFloatPair> assigner = 
                 trainQuantiser(GroupedUniformRandomisedSampler.sample(training, 30), pdsift);
+        System.err.println("Quantiser trained");
 
+        System.err.println("Constructing PHOW extractor...");
         FeatureExtractor<DoubleFV, FImage> extractor = new PHOWExtractor(pdsift, assigner);
+        System.err.println("PHOW extractor made");
 //
 //        LiblinearAnnotator<FImage, String> ann = new LiblinearAnnotator<FImage, String>(extractor, Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001);
 //        ann.train(training);
 
+        System.err.println("Constructing KernelMap...");
         HomogeneousKernelMap kMap = new HomogeneousKernelMap(KernelType.Chi2, WindowType.Rectangular);
+        System.err.println("KernelMap constructed");
+        System.err.println("Constructing Feature extractor...");
         FeatureExtractor<DoubleFV, FImage> extractor2 = kMap.createWrappedExtractor(extractor);
+        System.err.println("Feature extractor constructed");
 
+        System.err.println("Constructing linear annotator...");
         LiblinearAnnotator<FImage, String> ann = new LiblinearAnnotator<FImage, String>(
                 extractor2, Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001);
+        System.err.println("Linear annotator constructed");
+        System.err.println("Training...");
         ann.train(training);
+        System.err.println("Trained!");
 
 
         //        for (int i = 0; i < 20; i++) {
@@ -82,6 +98,7 @@ public class Run3 extends Main {
 
         Map<Integer, String> results = new HashMap<>();
 
+        System.err.println("Testing...");
         double correct = 0, total = 0;
         for (String cls : testing.getGroups()) {
             //Loop through each face in the testing set
@@ -99,14 +116,18 @@ public class Run3 extends Main {
                 total++;
             }
         }
+        System.err.println("Done!");
         System.out.println("Accuracy: " + correct/total + "%");
     }
 
     static HardAssigner<byte[], float[], IntFloatPair> trainQuantiser(
             GroupedDataset<String, ListDataset<FImage>, FImage> sample, PyramidDenseSIFT<FImage> pdsift)
     {
+        System.err.println("\tMaking list...");
         List<LocalFeatureList<ByteDSIFTKeypoint>> allkeys = new ArrayList<LocalFeatureList<ByteDSIFTKeypoint>>();
+        System.err.println("\tList made");
 
+        System.err.println("\tAdding features to list...");
         for (Entry<String, ListDataset<FImage>> entry : sample.entrySet()) 
         {
             for(FImage image : entry.getValue()) 
@@ -115,14 +136,21 @@ public class Run3 extends Main {
                 allkeys.add(pdsift.getByteKeypoints(0.005f));
             }
         }
+        System.err.println("\tAll features added");
 
 
         if (allkeys.size() > 10000)
             allkeys = allkeys.subList(0, 10000);
 
+        System.err.println("\tCreate KDTreeEnsemble...");
         ByteKMeans km = ByteKMeans.createKDTreeEnsemble(300);
+        System.err.println("\tCreated");
+        System.err.println("\tConstructing datasource...");
         DataSource<byte[]> datasource = new LocalFeatureListDataSource<ByteDSIFTKeypoint, byte[]>(allkeys);
+        System.err.println("\tDatasource made");
+        System.err.println("\tClustering...");
         ByteCentroidsResult result = km.cluster(datasource);
+        System.err.println("\tClustered!");
 
         return result.defaultHardAssigner();
     }

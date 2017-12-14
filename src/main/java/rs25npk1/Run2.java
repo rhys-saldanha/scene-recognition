@@ -177,7 +177,7 @@ public class Run2 extends Main {
             for (Rectangle patch : new RectangleSampler(image, STEP, STEP, PATCH_SIZE, PATCH_SIZE)) {
                 // Feature vector is defined as the values of the patch pixels
                 // Patches are constant size therefore feature vectors have constant dimensionality
-                DoubleFV featureVector = new DoubleFV(image.extractROI(patch).getDoublePixelVector());
+                DoubleFV featureVector = zeroMean(new DoubleFV(image.extractROI(patch).getDoublePixelVector()));
                 // Location of feature is the location of the patch
                 SpatialLocation location = new SpatialLocation(patch.x, patch.y);
                 LocalFeature<SpatialLocation, DoubleFV> localFeature = new LocalFeatureImpl<>(location, featureVector);
@@ -187,6 +187,20 @@ public class Run2 extends Main {
 
             Collections.shuffle(allPatches);
             return allPatches.subList(0, 10);
+        }
+
+        private DoubleFV zeroMean(DoubleFV feature) {
+            feature = feature.clone();
+            double mean = 0;
+            for (double d : feature.values) {
+                mean += d;
+            }
+            mean /= feature.values.length;
+            double[] newValues = new double[feature.values.length];
+            for (int i = 0; i < feature.values.length; i++) {
+                newValues[i] = feature.values[i] - mean;
+            }
+            return new DoubleFV(newValues);
         }
 
         @Override

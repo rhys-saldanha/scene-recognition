@@ -1,6 +1,9 @@
 package rs25npk1;
 
-import de.bwaldvogel.liblinear.SolverType;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
+
 import org.openimaj.data.DataSource;
 import org.openimaj.data.dataset.GroupedDataset;
 import org.openimaj.data.dataset.ListDataset;
@@ -26,9 +29,7 @@ import org.openimaj.ml.kernel.HomogeneousKernelMap.KernelType;
 import org.openimaj.ml.kernel.HomogeneousKernelMap.WindowType;
 import org.openimaj.util.pair.IntFloatPair;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map.Entry;
+import de.bwaldvogel.liblinear.SolverType;
 
 public class Run3 implements Classifier {
     LiblinearAnnotator<FImage, String> ann;
@@ -93,6 +94,10 @@ public class Run3 implements Classifier {
         ann = new LiblinearAnnotator<FImage, String>(
                 extractor2, Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001);
         System.err.println("Linear annotator constructed");
+        
+        System.err.println("Training...");
+        ann.train(trainingData);
+        System.err.println("Trained!");
     }
 
 //    void run() {

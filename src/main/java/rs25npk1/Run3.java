@@ -1,12 +1,10 @@
 package rs25npk1;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map.Entry;
-
+import de.bwaldvogel.liblinear.SolverType;
 import org.openimaj.data.DataSource;
 import org.openimaj.data.dataset.GroupedDataset;
 import org.openimaj.data.dataset.ListDataset;
+import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.experiment.dataset.sampling.GroupedUniformRandomisedSampler;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.FeatureExtractor;
@@ -29,7 +27,9 @@ import org.openimaj.ml.kernel.HomogeneousKernelMap.KernelType;
 import org.openimaj.ml.kernel.HomogeneousKernelMap.WindowType;
 import org.openimaj.util.pair.IntFloatPair;
 
-import de.bwaldvogel.liblinear.SolverType;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map.Entry;
 
 public class Run3 implements Classifier {
     LiblinearAnnotator<FImage, String> ann;
@@ -66,7 +66,7 @@ public class Run3 implements Classifier {
         return result.defaultHardAssigner();
     }
 
-    public void train(GroupedDataset<String, ListDataset<FImage>, FImage> trainingData) {
+    public void train(VFSGroupDataset<FImage> trainingData) {
         // Construct Dense SIFT extractor
         System.err.println("Constructing SIFT extractor...");
         DenseSIFT dsift = new DenseSIFT(5, 7);
@@ -94,56 +94,10 @@ public class Run3 implements Classifier {
         ann = new LiblinearAnnotator<FImage, String>(
                 extractor2, Mode.MULTICLASS, SolverType.L2R_L2LOSS_SVC, 1.0, 0.00001);
         System.err.println("Linear annotator constructed");
-        
+
         System.err.println("Training...");
         ann.train(trainingData);
-        System.err.println("Trained!");
     }
-
-//    void run() {
-//
-//        
-//        System.err.println("Training...");
-//        ann.train(training);
-//        System.err.println("Trained!");
-//
-//
-//        //        for (int i = 0; i < 20; i++) {
-//        //            FImage im = testingData.get(i);
-//        //            String fname = testingData.getID(i);
-//        //            
-//        //            String[] guess = ann.classify(im).getPredictedClasses().toArray(new String[]{});
-//        //            String guesses = "";
-//        //            for (String s : guess) {
-//        //                guesses = guesses + s;
-//        //            }
-//        //            System.out.println(fname + " " + guesses);
-//        //
-//        //        }
-//
-//        Map<Integer, String> results = new HashMap<>();
-//
-//        System.err.println("Testing...");
-//        double correct = 0, total = 0;
-//        for (String cls : testing.getGroups()) {
-//            //Loop through each face in the testing set
-//            for (FImage im : testing.get(cls)) {
-//                String[] guess = ann.classify(im).getPredictedClasses().toArray(new String[]{});
-//
-//                String guesses = "";
-//                for (String s : guess) {
-//                    guesses = guesses + s;
-//                }
-//
-//                if (guesses.equals(cls)) correct++;
-//                results.put((int) total, guesses);
-//
-//                total++;
-//            }
-//        }
-//        System.err.println("Done!");
-//        System.out.println("Accuracy: " + correct/total + "%");
-//    }
 
     public String classify(FImage f) {
         return ann.classify(f).getPredictedClasses().toArray(new String[]{})[0];

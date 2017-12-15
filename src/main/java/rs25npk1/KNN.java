@@ -2,6 +2,7 @@ package rs25npk1;
 
 import org.openimaj.data.dataset.GroupedDataset;
 import org.openimaj.data.dataset.ListDataset;
+import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.data.dataset.VFSListDataset;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.FeatureExtractor;
@@ -33,7 +34,7 @@ public class KNN implements Classifier {
     }
 
     @Override
-    public void train(GroupedDataset<String, ListDataset<FImage>, FImage> trainingData) {
+    public void train(VFSGroupDataset<FImage> trainingData) {
         // Instance of our feature extractor
         featureExtractor = new TinyImageFeatureExtractor(SQUARE_SIZE);
 
@@ -42,7 +43,6 @@ public class KNN implements Classifier {
         // Array of classes
         classes = new String[trainingData.numInstances()];
 
-        System.out.println("Training");
         AtomicInteger i = new AtomicInteger(0);
         trainingData.forEach((className, imageList) -> {
             imageList.forEach(image -> {
@@ -65,13 +65,10 @@ public class KNN implements Classifier {
     private Map<Integer, String> classify(List<FImage> list) {
         int[][] indices = new int[list.size()][K];
         double[][] distances = new double[list.size()][K];
-        System.out.println("Extracting features");
         List<double[]> qus = list.parallelStream().map(i -> featureExtractor.extractFeature(i).values).collect(Collectors.toList());
-        System.out.println("Finding KNN");
         knn.searchKNN(qus, K, indices, distances);
 
         Map<Integer, String> results = new HashMap<>();
-        System.out.println("Finding best class");
         IntStream.range(0, list.size()).forEach(i -> {
             Map<String, Integer> r = new LinkedHashMap<>();
             Arrays.stream(indices[i]).forEach(p -> {
@@ -83,22 +80,5 @@ public class KNN implements Classifier {
         });
 
         return results;
-    }
-
-    void run(VFSListDataset<FImage> testingData) {
-        System.out.println("Testing");
-        try (Writer writer = new FileWriter(new File("run1.txt"))) {
-            Map<Integer, String> results = classify(testingData);
-            System.out.println("Classified");
-            IntStream.range(0, testingData.size()).forEach(index -> {
-                try {
-                    writer.write(String.format("%s %s\n", testingData.getID(index).split("/")[1], results.get(index)));
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            });
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 }

@@ -6,6 +6,6 @@ import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.image.FImage;
 
 abstract interface Classifier {
-    abstract void train(GroupedDataset<String, ListDataset<FImage>, FImage> trainingData);
+    abstract void train(VFSGroupDataset<FImage> trainingData);
     abstract String classify(FImage f);
 }

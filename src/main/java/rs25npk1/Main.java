@@ -7,8 +7,15 @@ import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.image.FImage;
 import org.openimaj.image.ImageUtilities;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.Writer;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.IntStream;
 
 public class Main {
     // Used to force the downloading images from URLs
@@ -21,7 +28,7 @@ public class Main {
         URL training = ClassLoader.getSystemResource("training");
         String trainingURI = null;
         if (training == null || URLS) {
-            System.out.println("Using training URL");
+            System.err.println("Using training URL");
             trainingURI = "zip:http://comp3204.ecs.soton.ac.uk/cw/training.zip";
         } else {
             try {
@@ -36,6 +43,7 @@ public class Main {
             e.printStackTrace();
         }
         // Remove training folder if present
+        assert trainingData != null;
         trainingData.remove("training");
         return trainingData;
     }
@@ -45,7 +53,7 @@ public class Main {
         URL testing = ClassLoader.getSystemResource("testing");
         String testingURI = null;
         if (testing == null || URLS) {
-            System.out.println("Using testing URL");
+            System.err.println("Using testing URL");
             testingURI = "zip:http://comp3204.ecs.soton.ac.uk/cw/testing.zip";
         } else {
             try {
@@ -64,45 +72,37 @@ public class Main {
 
     public static void main(String[] args) {
         VFSGroupDataset<FImage> training = initialise_training();
-//        VFSListDataset<FImage> testing = initialise_testing();
+        VFSListDataset<FImage> testing = initialise_testing();
 
 
-        GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<>(training, 80, 0, 20);
+//        GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<>(training, 8, 0, 2);
 
-        Classifier classifier = new LIN();
-//        Classifier classifier = new KNN();
-//        Classifier classifier = new Run3();
+        classify_to_file(training, testing, new KNN(), "run1");
+        classify_to_file(training, testing, new LIN(), "run2");
+        classify_to_file(training, testing, new Run3(), "run3");
+    }
 
-        // TRAIN LIBLINEARANNOTATOR
+    private static void classify_to_file(VFSGroupDataset<FImage> training, VFSListDataset<FImage> testing, Classifier classifier, String name) {
+        // TRAIN
         System.err.println("Training");
-        classifier.train(random.getTrainingDataset());
+        classifier.train(training);
         System.err.println("Trained");
 
         //TESTING WITH SMALL TEST SET
-
         System.err.println("Testing");
-        double correct = 0, total = 0;
-        for (String cls : random.getTestDataset().getGroups()) {
-            //Loop through each face in the testing set
-            for (FImage im : random.getTestDataset().get(cls)) {
-                String guess = classifier.classify(im);
-                if (guess.equals(cls)) correct++;
-                total++;
-            }
+
+        try (Writer writer = new FileWriter(new File(name + ".txt"))) {
+            IntStream.range(0, testing.size()).parallel().forEach(i -> {
+                FImage f = testing.getInstance(i);
+                try {
+                    writer.write(String.format("%s %s\n", testing.getID(i).split("/")[1], classifier.classify(f)));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-
-        System.out.println("Correct: " + correct + " | Total: " + total + " | Accuracy: " + (correct / total) * 100);
-
-//        System.err.println("Writing");
-//        try (Writer writer = new FileWriter(new File("run2.txt"))) {
-//            System.err.println("Classified");
-//            for (Map.Entry<Integer, String> entry : results.entrySet()) {
-//                writer.write(String.format("%s %s\n", entry.getKey(), results.get(entry.getKey())));
-//            }
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-
-        System.err.println("Fin!");
+        System.err.println("FIN");
     }
 }

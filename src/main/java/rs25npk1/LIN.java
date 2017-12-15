@@ -4,6 +4,7 @@ import de.bwaldvogel.liblinear.SolverType;
 import org.openimaj.data.DataSource;
 import org.openimaj.data.dataset.GroupedDataset;
 import org.openimaj.data.dataset.ListDataset;
+import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.feature.DoubleFV;
 import org.openimaj.feature.FeatureExtractor;
 import org.openimaj.feature.local.LocalFeature;
@@ -37,7 +38,7 @@ class LIN implements Classifier {
     }
 
     @Override
-    public void train(GroupedDataset<String, ListDataset<FImage>, FImage> trainingData) {
+    public void train(VFSGroupDataset<FImage> trainingData) {
         LocalFeatureExtractor<LocalFeature<SpatialLocation, DoubleFV>, FImage> localExtractor = new LocalPatchesExtractor(this.patch_size, this.step_size);
 
         HardAssigner<double[], double[], IntDoublePair> assigner = makeAssigner(trainingData);
@@ -51,7 +52,7 @@ class LIN implements Classifier {
         System.err.println("Training: complete");
     }
 
-    private HardAssigner<double[], double[], IntDoublePair> makeAssigner(GroupedDataset<String, ListDataset<FImage>, FImage> groupedDataset) {
+    private HardAssigner<double[], double[], IntDoublePair> makeAssigner(VFSGroupDataset<FImage> groupedDataset) {
         List<LocalFeatureList<LocalFeature<SpatialLocation, DoubleFV>>> patches = new ArrayList<>();
 
         LocalPatchesExtractor extractor = new LocalPatchesExtractor(8, 4);

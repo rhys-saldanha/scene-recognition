@@ -77,8 +77,8 @@ public class Main {
 
 //        GroupedRandomSplitter<String, FImage> random = new GroupedRandomSplitter<>(training, 8, 0, 2);
 
-        classify_to_file(training, testing, new KNN(), "run1");
-        classify_to_file(training, testing, new LIN(), "run2");
+//        classify_to_file(training, testing, new KNN(), "run1");
+//        classify_to_file(training, testing, new LIN(), "run2");
         classify_to_file(training, testing, new Run3(), "run3");
     }
 

@@ -3,7 +3,6 @@ package rs25npk1;
 import org.apache.commons.vfs2.FileSystemException;
 import org.openimaj.data.dataset.VFSGroupDataset;
 import org.openimaj.data.dataset.VFSListDataset;
-import org.openimaj.experiment.dataset.split.GroupedRandomSplitter;
 import org.openimaj.image.FImage;
 import org.openimaj.image.ImageUtilities;
 
@@ -13,8 +12,6 @@ import java.io.IOException;
 import java.io.Writer;
 import java.net.URISyntaxException;
 import java.net.URL;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.stream.IntStream;
 
 public class Main {
@@ -92,12 +89,14 @@ public class Main {
         System.err.println("Testing");
 
         try (Writer writer = new FileWriter(new File(name + ".txt"))) {
-            IntStream.range(0, testing.size()).parallel().forEach(i -> {
+            IntStream.range(0, testing.size()).forEach(i -> {
                 FImage f = testing.getInstance(i);
                 try {
                     writer.write(String.format("%s %s\n", testing.getID(i).split("/")[1], classifier.classify(f)));
                 } catch (IOException e) {
                     e.printStackTrace();
+                } catch (ArrayIndexOutOfBoundsException e) {
+                    System.err.println("Array broke by " + testing.getID(i));
                 }
             });
         } catch (IOException e) {
